@@ -5,7 +5,7 @@ import pygame
 import sys
 
 pygame.init()
-screen = pygame.display.set_mode((300, 250))
+screen = pygame.display.set_mode((300, 330))
 font = pygame.font.Font(None, 40)
 
 class RoboticArm:
@@ -13,14 +13,21 @@ class RoboticArm:
         self.angles = [0, 0, 0, 0, 0, 0]
         self.motor = 0
         self.last_update_time = pygame.time.get_ticks()
+        self.motor_speed = {"SLOW": 20, "FAST": 5}
+        self.motor_speed_indices = {0: "SLOW", 1: "FAST"}
+        self.motor_speed_val = 0
 
     def draw(self, screen):
         # if I want to draw arm on the screen
         pass
 
     def handle_keypress(self, keys):
+        
+        if keys[pygame.K_UP]: self.motor_speed_val = 1
+        if keys[pygame.K_DOWN]: self.motor_speed_val = 0
+
         current_time = pygame.time.get_ticks()
-        if current_time - self.last_update_time > 10:
+        if current_time - self.last_update_time > self.motor_speed.get(self.motor_speed_indices.get(self.motor_speed_val)):
             if keys[pygame.K_RIGHT] and self.angles[self.motor] < 179: self.angles[self.motor] += 1
             elif keys[pygame.K_LEFT] and self.angles[self.motor] > 1: self.angles[self.motor] -= 1
             elif keys[pygame.K_1]: self.motor = 0
@@ -36,6 +43,11 @@ class RoboticArm:
         for i, angle in enumerate(self.angles):
             text = font.render(f"Motor {i + 1}: {angle} degrees", True, (0, 0, 0))
             screen.blit(text, (10, i * 40))
+            
+    def display_speed(self, screen):
+        text = font.render(f"Speed: {self.motor_speed_indices.get(self.motor_speed_val)}", True, (0, 0, 0))
+        screen.blit(text, (10, 300))
+
 
 arm = RoboticArm()
 clock = pygame.time.Clock()
@@ -52,6 +64,7 @@ while True:
     screen.fill((255, 255, 255))
     # arm.draw(screen)
     arm.display_angles(screen)
+    arm.display_speed(screen)
     pygame.display.flip()
 
     clock.tick(60)

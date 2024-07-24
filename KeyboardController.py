@@ -5,7 +5,7 @@ import pygame
 import sys
 
 pygame.init()
-screen = pygame.display.set_mode((300, 330))
+screen = pygame.display.set_mode((400, 400))
 font = pygame.font.Font(None, 40)
 
 class RoboticArm:
@@ -42,11 +42,11 @@ class RoboticArm:
     def display_angles(self, screen):
         for i, angle in enumerate(self.angles):
             text = font.render(f"Motor {i + 1}: {angle} degrees", True, (0, 0, 0))
-            screen.blit(text, (10, i * 40))
+            screen.blit(text, (120, i * 40 + 60))
             
     def display_speed(self, screen):
         text = font.render(f"Speed: {self.motor_speed_indices.get(self.motor_speed_val)}", True, (0, 0, 0))
-        screen.blit(text, (10, 300))
+        screen.blit(text, (120, 360))
 
 
 arm = RoboticArm()
@@ -65,6 +65,13 @@ while True:
     # arm.draw(screen)
     arm.display_angles(screen)
     arm.display_speed(screen)
+
+    header = font.render("Robotic Arm Controller", True, (0, 0, 0))
+    header_rect = header.get_rect(center=(150, 25))
+    pygame.draw.rect(screen, (252, 173, 3), (0, 0, 400, 50))
+    screen.blit(header, (45, 13))
+    pygame.draw.line(screen, (196, 135, 4), (0, 50), (400, 50), 4)
+
     pygame.display.flip()
 
     clock.tick(60)

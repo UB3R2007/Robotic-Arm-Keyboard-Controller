@@ -35,8 +35,8 @@ void loop() {
       Serial.print("Parsed angle: ");
       Serial.println(angle);
 
-      // Ensure motor number is valid (between 0 and 15 for Adafruit 16-channel driver)
-      if (motor >= 0 && motor < 7) {
+      // Ensure motor number is valid (between 0 and 5 for 6 DOF)
+      if (motor >= 0 && motor < 6) {
         setServo(motor, angle);  // Move the servo
       } else {
         Serial.println("Invalid motor number");

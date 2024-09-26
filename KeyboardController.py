@@ -12,45 +12,47 @@ arduino = serial.Serial('COM4', 9600)
 
 class RoboticArm:
     def __init__(self):
-        self.angles = [0, 0, 0, 0, 0, 140]  # initialize servo degrees
+        self.angles = [0, 0, 0, 180, 180, 140]  # initialize servo degrees
         self.motor = 0
+        self.target_angles = self.angles.copy()
         self.last_update_time = pygame.time.get_ticks()
         self.motor_speed = {"SLOW": 20, "FAST": 5}
         self.motor_speed_indices = {0: "SLOW", 1: "FAST"}
         self.motor_speed_val = 0
+        self.command_interval = 100  # milliseconds
+        self.last_command_time = pygame.time.get_ticks()
 
     def handle_keypress(self, keys):
         if keys[pygame.K_UP]: self.motor_speed_val = 1
         if keys[pygame.K_DOWN]: self.motor_speed_val = 0
 
         current_time = pygame.time.get_ticks()
-        if current_time - self.last_update_time > self.motor_speed.get(self.motor_speed_indices.get(self.motor_speed_val)):
-            if keys[pygame.K_RIGHT]:
-                if self.motor == 5 and self.angles[self.motor] < 140:
-                    self.angles[self.motor] += 1
-                elif self.motor != 5 and self.angles[self.motor] < 179:
-                    self.angles[self.motor] += 1
-                command = f"<{self.motor}:{self.angles[self.motor]}>"
-                arduino.write(command.encode())  # send motor and angle as "<motor:angle>"
-                print(f"Sent: {command}")
+        
+        if keys[pygame.K_RIGHT] or keys[pygame.K_LEFT]:
+            if current_time - self.last_command_time > self.command_interval:
+                increment = 5 if keys[pygame.K_RIGHT] else -5
+                if self.motor == 5 and (self.target_angles[self.motor] < 140 and increment > 0 or self.target_angles[self.motor] > 75 and increment < 0):
+                    self.target_angles[self.motor] += increment
+                elif self.motor != 5 and (self.target_angles[self.motor] < 179 and increment > 0 or self.target_angles[self.motor] > 1 and increment < 0):
+                    self.target_angles[self.motor] += increment
                 
-            elif keys[pygame.K_LEFT]:
-                if self.motor == 5 and self.angles[self.motor] > 75:
-                    self.angles[self.motor] -= 1
-                elif self.motor != 5 and self.angles[self.motor] > 1:
-                    self.angles[self.motor] -= 1
-                command = f"<{self.motor}:{self.angles[self.motor]}>"
+                command = f"<{self.motor}:{self.target_angles[self.motor]}>"
                 arduino.write(command.encode())
                 print(f"Sent: {command}")
-                
-            elif keys[pygame.K_1]: self.motor = 0
-            elif keys[pygame.K_2]: self.motor = 1
-            elif keys[pygame.K_3]: self.motor = 2
-            elif keys[pygame.K_4]: self.motor = 3
-            elif keys[pygame.K_5]: self.motor = 4
-            elif keys[pygame.K_6]: self.motor = 5
+                self.last_command_time = current_time
+        
+        # servo selection
+        for i in range(6):
+            if keys[pygame.K_1 + i]:
+                self.motor = i
 
-            self.last_update_time = current_time
+        # smooth transition
+        for i in range(6):
+            if self.angles[i] != self.target_angles[i]:
+                if self.angles[i] < self.target_angles[i]:
+                    self.angles[i] += 1
+                elif self.angles[i] > self.target_angles[i]:
+                    self.angles[i] -= 1
 
     def display_angles(self, screen):
         for i, angle in enumerate(self.angles):
@@ -86,7 +88,7 @@ while True:
 
     pygame.display.flip()
 
-    # debugging
+    # Debugging
     if arduino.in_waiting > 0:
         data = arduino.readline().decode(errors='ignore').strip()
         print(f"Received from Arduino: {data}")

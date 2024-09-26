@@ -1,35 +1,48 @@
-import keyboard
-import time
-import serial
 import pygame
 import sys
+import serial
+import time
 
 pygame.init()
 screen = pygame.display.set_mode((400, 400))
 font = pygame.font.Font(None, 40)
 
+# initialize serial connection to Arduino
+arduino = serial.Serial('COM4', 9600)
+
 class RoboticArm:
     def __init__(self):
-        self.angles = [0, 0, 0, 0, 0, 0]
+        self.angles = [0, 0, 0, 0, 0, 140]  # initialize servo degrees
         self.motor = 0
         self.last_update_time = pygame.time.get_ticks()
         self.motor_speed = {"SLOW": 20, "FAST": 5}
         self.motor_speed_indices = {0: "SLOW", 1: "FAST"}
         self.motor_speed_val = 0
 
-    def draw(self, screen):
-        # if I want to draw arm on the screen
-        pass
-
     def handle_keypress(self, keys):
-        
         if keys[pygame.K_UP]: self.motor_speed_val = 1
         if keys[pygame.K_DOWN]: self.motor_speed_val = 0
 
         current_time = pygame.time.get_ticks()
         if current_time - self.last_update_time > self.motor_speed.get(self.motor_speed_indices.get(self.motor_speed_val)):
-            if keys[pygame.K_RIGHT] and self.angles[self.motor] < 179: self.angles[self.motor] += 1
-            elif keys[pygame.K_LEFT] and self.angles[self.motor] > 1: self.angles[self.motor] -= 1
+            if keys[pygame.K_RIGHT]:
+                if self.motor == 5 and self.angles[self.motor] < 140:
+                    self.angles[self.motor] += 1
+                elif self.motor != 5 and self.angles[self.motor] < 179:
+                    self.angles[self.motor] += 1
+                command = f"<{self.motor}:{self.angles[self.motor]}>"
+                arduino.write(command.encode())  # send motor and angle as "<motor:angle>"
+                print(f"Sent: {command}")
+                
+            elif keys[pygame.K_LEFT]:
+                if self.motor == 5 and self.angles[self.motor] > 75:
+                    self.angles[self.motor] -= 1
+                elif self.motor != 5 and self.angles[self.motor] > 1:
+                    self.angles[self.motor] -= 1
+                command = f"<{self.motor}:{self.angles[self.motor]}>"
+                arduino.write(command.encode())
+                print(f"Sent: {command}")
+                
             elif keys[pygame.K_1]: self.motor = 0
             elif keys[pygame.K_2]: self.motor = 1
             elif keys[pygame.K_3]: self.motor = 2
@@ -62,7 +75,6 @@ while True:
     arm.handle_keypress(keys)
 
     screen.fill((255, 255, 255))
-    # arm.draw(screen)
     arm.display_angles(screen)
     arm.display_speed(screen)
 
@@ -74,33 +86,9 @@ while True:
 
     pygame.display.flip()
 
+    # debugging
+    if arduino.in_waiting > 0:
+        data = arduino.readline().decode(errors='ignore').strip()
+        print(f"Received from Arduino: {data}")
+
     clock.tick(60)
-
-
-# # Initialize your serial connection here
-# arduino = serial.Serial('/dev/ttyACM0', 9600)  # replace '/dev/ttyACM0' with your port
-
-# current_servo = 0
-
-# def change_angle():
-#     while True:
-#         if keyboard.is_pressed('up'):
-#             # Increase the angle of the current servo
-#             arduino.write((str(current_servo) + 'u').encode())  # send command to Arduino
-#             time.sleep(0.01)  # add delay as needed
-#         elif keyboard.is_pressed('down'):
-#             # Decrease the angle of the current servo
-#             arduino.write((str(current_servo) + 'd').encode())  # send command to Arduino
-#             time.sleep(0.01)  # add delay as needed
-
-# def select_servo(e):
-#     # Select the servo corresponding to the number key pressed
-#     global current_servo
-#     current_servo = int(e.name) - 1
-
-# # Bind the number keys to the select_servo function
-# for i in range(1, 7):
-#     keyboard.on_press_key(str(i), select_servo)
-
-# # Start the loop to change angle
-# change_angle()
